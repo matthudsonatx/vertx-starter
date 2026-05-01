@@ -1,0 +1,29 @@
+name: Deploy
+on:
+  workflow_call:
+    secrets:
+      SSH_PRIVATE_KEY:
+        required: true
+
+jobs:
+  Deploy:
+    name: Deploy to starter machine
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: prod
+      - uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: 25
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H 13.94.149.21 >> ~/.ssh/known_hosts
+      - name: Assemble
+        run: mvn package -DskipTests
+      - name: Run deployment script
+        run: bash .gh.deploy.bash

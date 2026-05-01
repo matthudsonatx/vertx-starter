@@ -67,7 +67,7 @@ public class ValidationHandler implements Handler<RoutingContext> {
 
   @Override
   public void handle(RoutingContext rc) {
-    VertxProject vertxProject = defaults.mapTo(VertxProject.class);
+    var vertxProject = defaults.mapTo(VertxProject.class);
 
     vertxProject.setId(UUID.randomUUID().toString());
 
@@ -86,7 +86,7 @@ public class ValidationHandler implements Handler<RoutingContext> {
       return;
     }
 
-    String vertxVersion = getQueryParam(rc, VERTX_VERSION);
+    var vertxVersion = getQueryParam(rc, VERTX_VERSION);
     if (isNotBlank(vertxVersion)) {
       if (!versions.contains(vertxVersion)) {
         fail(rc, VERTX_VERSION, vertxVersion);
@@ -95,9 +95,9 @@ public class ValidationHandler implements Handler<RoutingContext> {
       vertxProject.setVertxVersion(vertxVersion);
     }
 
-    String deps = getQueryParam(rc, VERTX_DEPENDENCIES);
+    var deps = getQueryParam(rc, VERTX_DEPENDENCIES);
     if (isNotBlank(deps)) {
-      Set<String> vertxDependencies = Arrays.stream(deps.split(","))
+      var vertxDependencies = Arrays.stream(deps.split(","))
         .map(String::trim)
         .filter(s -> !s.isEmpty())
         .map(String::toLowerCase)
@@ -117,7 +117,7 @@ public class ValidationHandler implements Handler<RoutingContext> {
       vertxProject.setVertxDependencies(vertxDependencies);
     }
 
-    ArchiveFormat archiveFormat = ArchiveFormat.fromFilename(rc.request().path());
+    var archiveFormat = ArchiveFormat.fromFilename(rc.request().path());
     if (archiveFormat != null) {
       vertxProject.setArchiveFormat(archiveFormat);
     } else {
@@ -142,7 +142,7 @@ public class ValidationHandler implements Handler<RoutingContext> {
   }
 
   private boolean validateAndSetId(RoutingContext rc, String name, Consumer<String> setter) {
-    String value = getQueryParam(rc, name);
+    var value = getQueryParam(rc, name);
     if (isNotBlank(value)) {
       if (!ID_REGEX.matcher(value).matches()) {
         fail(rc, name, value);
@@ -154,9 +154,9 @@ public class ValidationHandler implements Handler<RoutingContext> {
   }
 
   private <T extends Enum<?>> boolean validateAndSetEnum(RoutingContext rc, String name, Function<String, T> factory, Consumer<T> setter) {
-    String value = getQueryParam(rc, name);
+    var value = getQueryParam(rc, name);
     if (isNotBlank(value)) {
-      T t = factory.apply(value);
+      var t = factory.apply(value);
       if (t == null) {
         fail(rc, name, value);
         return false;
@@ -167,7 +167,7 @@ public class ValidationHandler implements Handler<RoutingContext> {
   }
 
   private String getQueryParam(RoutingContext rc, String name) {
-    String value = rc.queryParams().get(name);
+    var value = rc.queryParams().get(name);
     return value == null ? null : value.trim();
   }
 
@@ -177,7 +177,7 @@ public class ValidationHandler implements Handler<RoutingContext> {
 
   private String operatingSystem(String userAgentHeader) {
     if (userAgentHeader != null) {
-      String ua = userAgentHeader.toLowerCase();
+      var ua = userAgentHeader.toLowerCase();
       if (ua.contains("macintosh")) {
         return "Mac";
       }

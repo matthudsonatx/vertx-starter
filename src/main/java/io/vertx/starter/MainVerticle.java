@@ -16,30 +16,34 @@
 
 package io.vertx.starter;
 
-import io.vertx.core.AbstractVerticle;
 import io.vertx.core.DeploymentOptions;
-import io.vertx.core.Promise;
+import io.vertx.core.Future;
+import io.vertx.core.ThreadingModel;
+import io.vertx.core.VerticleBase;
 import io.vertx.core.json.JsonObject;
 
 import static io.vertx.starter.config.VerticleConfigurationConstants.Web.HTTP_PORT;
 
-public class MainVerticle extends AbstractVerticle {
+public class MainVerticle extends VerticleBase {
 
   @Override
-  public void start(Promise<Void> startPromise) throws Exception {
-    DeploymentOptions analyticsOptions = new DeploymentOptions()
+  public Future<?> start() throws Exception {
+    var analyticsOptions = new DeploymentOptions()
+      .setThreadingModel(ThreadingModel.VIRTUAL_THREAD)
       .setConfig(new JsonObject()
         .put("host", "localhost")
         .put("port", 27017)
         .put("db_name", "vertx-starter-analytics"));
 
-    DeploymentOptions webOptions = new DeploymentOptions()
+    var generatorOptions = new DeploymentOptions()
+      .setThreadingModel(ThreadingModel.VIRTUAL_THREAD);
+
+    var webOptions = new DeploymentOptions()
+      .setThreadingModel(ThreadingModel.VIRTUAL_THREAD)
       .setConfig(new JsonObject().put(HTTP_PORT, 8080));
 
-    vertx.deployVerticle(AnalyticsVerticle::new, analyticsOptions)
-      .compose(v -> vertx.deployVerticle(GeneratorVerticle::new, new DeploymentOptions()))
-      .compose(v -> vertx.deployVerticle(WebVerticle::new, webOptions))
-      .<Void>mapEmpty()
-      .onComplete(startPromise);
+    return vertx.deployVerticle(AnalyticsVerticle::new, analyticsOptions)
+      .compose(v -> vertx.deployVerticle(GeneratorVerticle::new, generatorOptions))
+      .compose(v -> vertx.deployVerticle(WebVerticle::new, webOptions));
   }
 }

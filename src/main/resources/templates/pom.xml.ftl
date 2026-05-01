@@ -13,9 +13,9 @@
 
 <#if language == "kotlin">
 <#if vertxVersion?starts_with("5.")>
-    <kotlin.version>2.0.0</kotlin.version>
+    <kotlin.version>2.2.20</kotlin.version>
 <#else>
-    <kotlin.version>1.7.21</kotlin.version>
+    <kotlin.version>2.1.21</kotlin.version>
 </#if>
 
 <#else>
@@ -90,20 +90,12 @@
 </#noparse>
 </#if>
 </#if>
-<#if hasPgClient>
-<#if vertxVersion?starts_with("5.")>
+<#if hasPgClient && vertxVersion?starts_with("4.")>
   <dependency>
     <groupId>com.ongres.scram</groupId>
-    <artifactId>scram-client</artifactId>
-    <version>3.1</version>
+    <artifactId>client</artifactId>
+    <version>2.1</version>
   </dependency>
-<#else>
-  <dependency>
-  <groupId>com.ongres.scram</groupId>
-  <artifactId>client</artifactId>
-  <version>2.1</version>
-  </dependency>
-</#if>
 </#if>
 
 <#if hasVertxJUnit5>
@@ -160,9 +152,9 @@
 </#noparse>
         <configuration>
 <#if vertxVersion?starts_with("5.")>
-          <jvmTarget>${jdkVersion?switch('11', '11', '17' '17', '21' '21', '17')}</jvmTarget>
+          <jvmTarget>${jdkVersion?switch('17' '17', '21' '21', '25' '24', '17')}</jvmTarget>
 <#else>
-          <jvmTarget>${jdkVersion?switch('11', '11', '17' '17', '17')}</jvmTarget>
+          <jvmTarget>${jdkVersion?switch('17' '17', '21' '21', '25' '21', '17')}</jvmTarget>
 </#if>
         </configuration>
         <executions>

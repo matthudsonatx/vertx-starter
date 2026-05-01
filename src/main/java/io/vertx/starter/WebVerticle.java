@@ -18,11 +18,9 @@ package io.vertx.starter;
 
 import io.netty.util.AsciiString;
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Promise;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerOptions;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.AllowForwardHeaders;
 import io.vertx.ext.web.Router;
@@ -64,11 +62,11 @@ public class WebVerticle extends AbstractVerticle {
   public WebVerticle() {
     try {
 
-      JsonObject starterData = Util.loadStarterData();
+      var starterData = Util.loadStarterData();
 
-      JsonObject defaults = starterData.getJsonObject("defaults");
-      JsonArray versions = starterData.getJsonArray("versions");
-      JsonArray stack = starterData.getJsonArray("stack");
+      var defaults = starterData.getJsonObject("defaults");
+      var versions = starterData.getJsonArray("versions");
+      var stack = starterData.getJsonArray("stack");
 
       validationHandler = new ValidationHandler(defaults, versions, stack);
       generationHandler = new GenerationHandler();
@@ -80,10 +78,10 @@ public class WebVerticle extends AbstractVerticle {
   }
 
   @Override
-  public void start(Promise<Void> startPromise) {
+  public void start() throws Exception {
     vertx.eventBus().registerDefaultCodec(VertxProject.class, new VertxProjectCodec());
 
-    Router router = Router.router(vertx).allowForward(AllowForwardHeaders.X_FORWARD);
+    var router = Router.router(vertx).allowForward(AllowForwardHeaders.X_FORWARD);
 
     router.route()
       .handler(HSTSHandler.create())
@@ -98,8 +96,8 @@ public class WebVerticle extends AbstractVerticle {
         rc.next();
       });
 
-    CorsHandler corsHandler = CorsHandler.create()
-      .addRelativeOrigin(".*")
+    var corsHandler = CorsHandler.create()
+      .addOriginWithRegex(".*")
       .allowedMethod(HttpMethod.GET)
       .allowedMethod(HttpMethod.POST)
       .allowedHeader("Content-Type")
@@ -112,14 +110,16 @@ public class WebVerticle extends AbstractVerticle {
       .handler(validationHandler)
       .handler(generationHandler);
 
-    StaticHandler staticHandler = StaticHandler.create()
+    var staticHandler = StaticHandler.create()
       .skipCompressionForSuffixes(SKIP_COMPRESSION_FILE_SUFFIXES)
       .skipCompressionForMediaTypes(SKIP_COMPRESSION_MEDIA_TYPES);
     router.route().handler(rc -> {
       rc.addHeadersEndHandler(v -> {
-        String normalizedPath = rc.normalizedPath();
-        if (!(WebEnvironment.development() || "/".equals(normalizedPath) || "/index.html".equals(normalizedPath))) {
-          rc.response().putHeader(CACHE_CONTROL, ONE_YEAR_CACHE);
+        if (!WebEnvironment.development()) {
+          var normalizedPath = rc.normalizedPath();
+          if (!"/".equals(normalizedPath) && !"/index.html".equals(normalizedPath)) {
+            rc.response().putHeader(CACHE_CONTROL, ONE_YEAR_CACHE);
+          }
         }
       });
       rc.next();
@@ -129,25 +129,20 @@ public class WebVerticle extends AbstractVerticle {
 
     vertx.createHttpServer(new HttpServerOptions().setCompressionSupported(true))
       .requestHandler(router)
-      .listen(port, ar -> {
-        if (ar.failed()) {
-          log.error("Fail to start {}", WebVerticle.class.getSimpleName(), ar.cause());
-          startPromise.fail(ar.cause());
-        } else {
-          log.info("""
+      .listen(port)
+      .await();
 
-            ----------------------------------------------------------
-            {} is running! Access URLs:
-            Local: http://localhost:{}
-            ----------------------------------------------------------
-            """, WebVerticle.class.getSimpleName(), port);
-          startPromise.complete();
-        }
-      });
+    log.info("""
+
+      ----------------------------------------------------------
+      {} is running! Access URLs:
+      Local: http://localhost:{}
+      ----------------------------------------------------------
+      """, WebVerticle.class.getSimpleName(), port);
   }
 
   static void fail(RoutingContext rc, int status, String message) {
-    JsonObject error = new JsonObject()
+    var error = new JsonObject()
       .put("status", status)
       .put("message", message);
     rc.response().setStatusCode(status).putHeader(HttpHeaders.CONTENT_TYPE, "application/json").end(error.toBuffer());

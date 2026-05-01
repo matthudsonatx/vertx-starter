@@ -17,17 +17,15 @@
 package io.vertx.starter;
 
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Promise;
 import io.vertx.starter.config.Topics;
 import io.vertx.starter.model.VertxProject;
 import io.vertx.starter.service.AnalyticsService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Objects;
 
 import static io.vertx.starter.config.VerticleConfigurationConstants.Analytics.ANALYTICS_DIR_CONF;
 import static io.vertx.starter.config.VerticleConfigurationConstants.Analytics.ANALYTICS_DIR_ENV;
@@ -37,29 +35,23 @@ public class AnalyticsVerticle extends AbstractVerticle {
   private static final Logger log = LogManager.getLogger(AnalyticsVerticle.class);
 
   @Override
-  public void start(Promise<Void> startPromise) {
-    String analyticsDirStr = config().getString(ANALYTICS_DIR_CONF, System.getenv(ANALYTICS_DIR_ENV));
-    if (analyticsDirStr == null) {
-      startPromise.fail("analyticsDir is null");
-      return;
-    }
+  public void start() throws Exception {
+    var analyticsDirStr = config().getString(ANALYTICS_DIR_CONF, System.getenv(ANALYTICS_DIR_ENV));
+    Objects.requireNonNull(analyticsDirStr, "analyticsDir is null");
 
-    Path analyticsDir = Paths.get(analyticsDirStr).toAbsolutePath();
+    var analyticsDir = Paths.get(analyticsDirStr).toAbsolutePath();
     if (!Files.isDirectory(analyticsDir)) {
-      startPromise.fail(analyticsDir + " is not a directory");
-      return;
+      throw new IllegalArgumentException(analyticsDir + " is not a directory");
     }
 
-    try {
-      Path test = Files.createTempFile(analyticsDir, "test", ".donotanalyze");
-      Files.delete(test);
-    } catch (IOException e) {
-      startPromise.fail(new RuntimeException("Cannot write to " + analyticsDir, e));
-      return;
-    }
+    var test = Files.createTempFile(analyticsDir, "test", ".donotanalyze");
+    Files.delete(test);
 
-    AnalyticsService analyticsService = new AnalyticsService(vertx, analyticsDir);
-    vertx.eventBus().<VertxProject>consumer(Topics.PROJECT_CREATED).handler(analyticsService::onProjectCreated);
+    var analyticsService = new AnalyticsService(vertx, analyticsDir);
+    vertx.eventBus().<VertxProject>consumer(Topics.PROJECT_CREATED)
+      .handler(analyticsService::onProjectCreated)
+      .completion()
+      .await();
 
     log.info("""
 
@@ -67,7 +59,5 @@ public class AnalyticsVerticle extends AbstractVerticle {
       {} is running!
       ----------------------------------------------------------
       """, AnalyticsVerticle.class.getSimpleName());
-
-    startPromise.complete();
   }
 }
